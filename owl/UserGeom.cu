@@ -17,6 +17,8 @@
 #include "UserGeom.h"
 #include "Context.h"
 
+#define USE_MANAGED_MEM_FOR_PRIM_BOUNDS_DATA 1
+
 namespace owl {
 
 #define LOG(message)                                    \
@@ -168,6 +170,14 @@ namespace owl {
     this->boundsProg.module   = module;
   }
 
+  /*! releases the bounds memory from running the bounds program */
+  void UserGeom::freeBoundsMem(const DeviceContext::SP &device)
+  {
+    SetActiveGPU activeGPU(device);
+    DeviceData &dd = getDD(device);
+    dd.internalBufferForBoundsProgram.free();
+  }
+
   /*! run the bounding box program for all primitives within this geometry */
   void UserGeom::executeBoundsProgOnPrimitives(const DeviceContext::SP &device)
   {
@@ -179,8 +189,11 @@ namespace owl {
     tempMem.alloc(geomType->varStructSize);
     
     DeviceData &dd = getDD(device);
+#if USE_MANAGED_MEM_FOR_PRIM_BOUNDS_DATA
+    dd.internalBufferForBoundsProgram.allocManaged(primCount*sizeof(box3f));
+#else
     dd.internalBufferForBoundsProgram.alloc(primCount*sizeof(box3f));
-    // dd.internalBufferForBoundsProgram.allocManaged(primCount*sizeof(box3f));
+#endif
 
     writeVariables(userGeomData.data(),device);
         

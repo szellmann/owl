@@ -31,6 +31,8 @@
 
 namespace owl {
   
+  // bool freeBoundsMemAfterBuild = false;
+
   UserGeomGroup::UserGeomGroup(Context *const context,
                                size_t numChildren)
     : GeomGroup(context,numChildren)
@@ -50,6 +52,15 @@ namespace owl {
         buildAccelOn<true>(device);
       else
         buildAccelOn<false>(device);
+
+    // if (owl::freeBoundsMemAfterBuild) {
+    //   for (auto child : geometries) {
+    //     UserGeom::SP userGeom = child->as<UserGeom>();
+    //     assert(userGeom);
+    //     for (auto device : context->getDevices())
+    //       userGeom->freeBoundsMem(device);
+    //   }
+    // }
   }
   
   void UserGeomGroup::buildAccel()
@@ -229,7 +240,13 @@ namespace owl {
     // finish - clean up
     // ==================================================================
 
+#if 1
     tempBuffer.free();
+#else
+    std::cout <<" NOT FREEING TEMP MEMORY" << std::endl;
+    dd.memFinal += tempBuffer.size();
+    tempBuffer.d_pointer = 0;
+#endif
 
     LOG_OK("successfully built user geom group accel");
 
@@ -242,11 +259,17 @@ namespace owl {
       UserGeom::DeviceData &ugDD = child->getDD(device);
       
       sumBoundsMem += ugDD.internalBufferForBoundsProgram.sizeInBytes;
-      if (ugDD.internalBufferForBoundsProgram.alloced())
+      if (ugDD.internalBufferForBoundsProgram.alloced()) {
+#if 1
         ugDD.internalBufferForBoundsProgram.free();
+#else
+        std::cout <<" NOT FREEING BOUNDS MEMORY" << std::endl;
+        dd.memFinal += ugDD.internalBufferForBoundsProgram.size();
+        ugDD.internalBufferForBoundsProgram.d_pointer = 0;
+#endif
+      }
     }
-    if (FULL_REBUILD)
-      dd.memPeak += sumBoundsMem;
+    dd.memPeak += sumBoundsMem;
 
     CUDA_SYNC_CHECK();
   }

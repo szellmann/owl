@@ -135,6 +135,9 @@ namespace owl {
 
     /*! run the bounding box program for all primitives within this geometry */
     void executeBoundsProgOnPrimitives(const DeviceContext::SP &device);
+    
+    /*! releases the bounds memory from running the bounds program */
+    void freeBoundsMem(const DeviceContext::SP &device);
 
     /*! number of prims that this geom will contain */
     size_t primCount = 0;
